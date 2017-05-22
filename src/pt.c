@@ -78,13 +78,12 @@ struct folder_entry eg0 = {
 	.text = t0,
 };
 
-char t1[] = (
-	"What is the shared folder for? Who knows! But it's in the screenshots and so we're using it.\n\n"
+char t1[] = "What is the shared folder for? Who knows! But it's in the screenshots and so we're using it.\n\n"
 	"This is just going to be a really long-winded string literal that allows me to test such things as text wrapping, and scrolling.\n\n"
 	"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus posuere libero at nulla dignissim porta. Etiam quam nibh, tempor et lectus id, viverra fringilla augue. Sed sed laoreet erat. Etiam tempor eget felis eget porta. Aenean purus arcu, venenatis et cursus non, imperdiet non diam. Etiam et scelerisque leo, non auctor ante. Suspendisse potenti.\n\n"
 	"Duis faucibus justo in turpis elementum auctor. Nunc quis vulputate tortor, fermentum vehicula lorem. Cras ex ipsum, lacinia sit amet lacus et, tincidunt consequat dui. Integer sollicitudin dignissim augue vulputate fermentum. Suspendisse potenti. Phasellus gravida eu ipsum sed lacinia. Aliquam eget hendrerit sem. Pellentesque venenatis, tortor at dictum malesuada, lorem enim porttitor nulla, ut pellentesque dui orci sed massa. Maecenas vehicula eleifend dolor, et molestie ante congue non. Etiam mi purus, mattis nec eros non, rutrum rutrum ligula.\n\n"
-	"Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis quis aliquam purus. Etiam mollis pulvinar justo, consectetur posuere tellus. Aliquam hendrerit, arcu sed vestibulum venenatis, massa urna sollicitudin ante, ut eleifend nisl ipsum lacinia nunc. Donec at arcu fringilla, sollicitudin dui non, molestie lorem. Phasellus risus justo, malesuada vitae urna at, pulvinar feugiat ante. Nulla ac lorem nec ipsum vehicula sodales. Vestibulum rutrum tortor quis ante scelerisque, et dictum orci sodales. Ut fermentum, nisl sed venenatis elementum, erat leo hendrerit sapien, vitae vulputate nulla lectus sed ligula. Sed turpis erat, laoreet et velit non, vulputate convallis orci. Ut eu interdum mi. Donec quis accumsan lacus, sit amet vestibulum nisl."
-);
+	"Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis quis aliquam purus. Etiam mollis pulvinar justo, consectetur posuere tellus. Aliquam hendrerit, arcu sed vestibulum venenatis, massa urna sollicitudin ante, ut eleifend nisl ipsum lacinia nunc. Donec at arcu fringilla, sollicitudin dui non, molestie lorem. Phasellus risus justo, malesuada vitae urna at, pulvinar feugiat ante. Nulla ac lorem nec ipsum vehicula sodales. Vestibulum rutrum tortor quis ante scelerisque, et dictum orci sodales. Ut fermentum, nisl sed venenatis elementum, erat leo hendrerit sapien, vitae vulputate nulla lectus sed ligula. Sed turpis erat, laoreet et velit non, vulputate convallis orci. Ut eu interdum mi. Donec quis accumsan lacus, sit amet vestibulum nisl.";
+
 struct folder_entry eg1 = {
 	.folder = "SHARED",
 	.title  = "This is a shared message",
@@ -146,7 +145,7 @@ static int wrap_folder_entry(struct personal_terminal *pt,
  * Write a folder entry text body. Uses the selected entry, and the current
  * scroll.
  */
-static void write_folder_entry(struct personal_terminal *pt)
+static void draw_content_text(struct personal_terminal *pt)
 {
 	int maxy, maxx, nlines, i;
 	unsigned int scroll = pt->scroll;
@@ -188,7 +187,7 @@ static void write_folder_entry(struct personal_terminal *pt)
 	return;
 }
 
-static void draw_selected_elbow(struct personal_terminal *pt)
+static void draw_elbow_box(struct personal_terminal *pt)
 {
 	unsigned int i;
 	wclear(pt->elbow_box);
@@ -210,37 +209,38 @@ static void draw_selected_elbow(struct personal_terminal *pt)
 	wnoutrefresh(pt->elbow_box);
 }
 
+static void draw_content_title(struct personal_terminal *pt)
+{
+	wclear(pt->content_title);
+	box(pt->content_title, 0, 0);
+	mvwaddch(pt->content_title, 1, 0, ACS_RTEE);
+	mvwaddstr(pt->content_title, 1, 1,
+	          pt->folder_entries[pt->selected]->title);
+	wnoutrefresh(pt->content_title);
+}
+
+static void draw_folder_box_outline(struct personal_terminal *pt, int i, int attr)
+{
+	wattron(pt->folder_box[i], attr);
+	box(pt->folder_box[i], 0, 0);
+	wattroff(pt->folder_box[i], attr);
+	wnoutrefresh(pt->folder_box[i]);
+}
+
 static void select_folder(struct personal_terminal *pt, int i)
 {
 	if (i < 0 || i >= N_FOLDER_BOX)
 		return;
 
-	/* make old selection dim */
-	wattron(pt->folder_box[pt->selected], A_DIM);
-	box(pt->folder_box[pt->selected], 0, 0);
-	wattroff(pt->folder_box[pt->selected], A_DIM);
-	wnoutrefresh(pt->folder_box[pt->selected]);
+	draw_folder_box_outline(pt, (int)pt->selected, A_DIM);
 
-	/* adjust data structure to point to new selected item */
 	pt->selected = (unsigned int) i;
 	pt->scroll = 0;
 
-	/* draw connecting elbow and text */
-	draw_selected_elbow(pt);
-	write_folder_entry(pt);
-
-	/* write title in title box */
-	wclear(pt->content_title);
-	box(pt->content_title, 0, 0);
-	mvwaddstr(pt->content_title, 1, 1,
-	          pt->folder_entries[pt->selected]->title);
-	wnoutrefresh(pt->content_title);
-
-	/* make new selection bright */
-	wattron(pt->folder_box[pt->selected], A_BOLD);
-	box(pt->folder_box[pt->selected], 0, 0);
-	wattroff(pt->folder_box[pt->selected], A_BOLD);
-	wnoutrefresh(pt->folder_box[pt->selected]);
+	draw_elbow_box(pt);
+	draw_content_text(pt);
+	draw_content_title(pt);
+	draw_folder_box_outline(pt, (int)pt->selected, A_BOLD);
 }
 
 static void scroll_up(struct personal_terminal *pt)
@@ -249,7 +249,7 @@ static void scroll_up(struct personal_terminal *pt)
 		return;
 
 	pt->scroll -= 1;
-	write_folder_entry(pt);
+	draw_content_text(pt);
 }
 
 static void scroll_down(struct personal_terminal *pt)
@@ -262,7 +262,7 @@ static void scroll_down(struct personal_terminal *pt)
 		return;
 	}
 	pt->scroll += 1;
-	write_folder_entry(pt);
+	draw_content_text(pt);
 }
 
 static int init_personal_terminal(struct personal_terminal *pt)
@@ -282,61 +282,47 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	pt->selected = 0;
 	pt->scroll = 0;
 
-	/* draw personal terminal text in reverse video at top of screen */
+	/* The first stuff we draw never changes, and thus has no windows. */
 	move(Y_PERSONAL_TERMINAL, X_PERSONAL_TERMINAL);
 	attron(A_REVERSE);
 	addstr("PERSONAL TERMINAL");
 	attroff(A_REVERSE);
 	chgat(-1, A_REVERSE, 0, NULL);
 
-	/* draw folders text above where they will go */
 	mvaddstr(Y_FOLDERS, X_FOLDERS, "FOLDERS");
 
-	/* draw bottom bar with instructions */
 	move(pt->maxy - 1, 0);
 	attron(A_DIM);
 	addstr("UP, DOWN: select folder | LEFT, RIGHT: scroll | q: exit");
 	attroff(A_DIM);
 
-	/* refresh stdscr but don't output to terminal until all is done */
 	wnoutrefresh(stdscr);
 
-	/* draw the content title box */
+	/* the remaining stuff is redrawn regularly, and uses windows */
+	pt->elbow_box = newwin(H_ELBOW_WINDOW, W_ELBOW_WINDOW, Y_ELBOW_WINDOW,
+	                       X_ELBOW_WINDOW);
 	pt->content_title = newwin(H_CONTENT_TITLE, pt->maxx - X_CONTENT_TITLE,
 	                           Y_CONTENT_TITLE, X_CONTENT_TITLE);
-	box(pt->content_title, 0, 0);
-	mvwaddstr(pt->content_title, 1, 1,
-	          pt->folder_entries[pt->selected]->title);
-	wnoutrefresh(pt->content_title);
-
-	/* draw the content text box */
 	pt->content_text = newwin(pt->maxy - Y_CONTENT_TEXT - 1, /* for bar */
 	                          pt->maxx - X_CONTENT_TEXT,
 	                          Y_CONTENT_TEXT, X_CONTENT_TEXT);
-	box(pt->content_text, 0, 0);
-	wnoutrefresh(pt->content_text);
 
-	/* draw the elbow box */
-	pt->elbow_box = newwin(H_ELBOW_WINDOW, W_ELBOW_WINDOW, Y_ELBOW_WINDOW,
-	                       X_ELBOW_WINDOW);
-	draw_selected_elbow(pt);
-
-	/* draw the folder boxes */
 	for (i = 0; i < N_FOLDER_BOX; i++) {
 		pt->folder_box[i] = newwin(H_FOLDER_BOX, W_FOLDER_BOX,
 		                           Y_FOLDER_BOX + i * H_FOLDER_BOX,
 		                           X_FOLDER_BOX);
-		wattron(pt->folder_box[i], (i == pt->selected ? A_BOLD : A_DIM));
-		box(pt->folder_box[i], 0, 0);
-		wattroff(pt->folder_box[i], (i == pt->selected ? A_BOLD : A_DIM));
 		mvwaddstr(pt->folder_box[i], 1, 1, pt->folder_entries[i]->folder);
-		wnoutrefresh(pt->folder_box[i]);
+		draw_folder_box_outline(pt, i, (i == pt->selected ? A_BOLD : A_DIM));
+
+		/* and wrap text (this should move somewhere else) */
 		if (wrap_folder_entry(pt, pt->folder_entries[i]) < 0) {
 			mark_error();
 			return -1;
 		}
 	}
-	write_folder_entry(pt);
+	draw_elbow_box(pt);
+	draw_content_title(pt);
+	draw_content_text(pt);
 
 	doupdate();
 	return 0;
