@@ -219,10 +219,15 @@ static void draw_content_title(struct personal_terminal *pt)
 	wnoutrefresh(pt->content_title);
 }
 
-static void draw_folder_box_outline(struct personal_terminal *pt, int i, int attr)
+static void draw_folder_box_outline(struct personal_terminal *pt,
+                                    unsigned int i)
 {
+	int attr = (i == pt->selected ? A_BOLD : A_DIM);
 	wattron(pt->folder_box[i], attr);
 	box(pt->folder_box[i], 0, 0);
+	if (pt->selected == i) {
+		mvwaddch(pt->folder_box[i], 1, W_FOLDER_BOX - 1, ACS_LTEE);
+	}
 	wattroff(pt->folder_box[i], attr);
 	wnoutrefresh(pt->folder_box[i]);
 }
@@ -232,15 +237,16 @@ static void select_folder(struct personal_terminal *pt, int i)
 	if (i < 0 || i >= N_FOLDER_BOX)
 		return;
 
-	draw_folder_box_outline(pt, (int)pt->selected, A_DIM);
 
+	unsigned int old = pt->selected;
 	pt->selected = (unsigned int) i;
 	pt->scroll = 0;
 
 	draw_elbow_box(pt);
 	draw_content_text(pt);
 	draw_content_title(pt);
-	draw_folder_box_outline(pt, (int)pt->selected, A_BOLD);
+	draw_folder_box_outline(pt, old);
+	draw_folder_box_outline(pt, pt->selected);
 }
 
 static void scroll_up(struct personal_terminal *pt)
@@ -312,7 +318,7 @@ static int init_personal_terminal(struct personal_terminal *pt)
 		                           Y_FOLDER_BOX + i * H_FOLDER_BOX,
 		                           X_FOLDER_BOX);
 		mvwaddstr(pt->folder_box[i], 1, 1, pt->folder_entries[i]->folder);
-		draw_folder_box_outline(pt, i, (i == pt->selected ? A_BOLD : A_DIM));
+		draw_folder_box_outline(pt, i);
 
 		/* and wrap text (this should move somewhere else) */
 		if (wrap_folder_entry(pt, pt->folder_entries[i]) < 0) {
