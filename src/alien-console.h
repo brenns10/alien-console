@@ -25,7 +25,7 @@ struct splash_params {
 int splash(const struct splash_params *params);
 
 /*
- * ERROR HANDLING
+ * ERROR HANDLING (see error.c for an overview)
  */
 enum error {
 	/* UPDATES TO THIS TABLE MUST UPDATE error_values TABLE IN error.c */
