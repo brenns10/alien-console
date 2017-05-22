@@ -19,6 +19,14 @@
  *
  *   etc etc etc etc
  * +------------------------------------------------------------------------+
+ *
+ * The interfaces here are fairly simple: the folder boxes, the elbow connector,
+ * the content title, and the content text all have windows. Each one has a
+ * function which will redraw it and refresh it (but not doupdate()). The init
+ * function creates all windows, draws all the static stuff, and uses each draw
+ * function to draw everything for the first time. Then the loop function simply
+ * waits for keypresses and calls corresponding functions. These guys just
+ * update the state and then redraw only the things that changed.
  */
 #include <ncurses.h>
 #include <string.h>
@@ -33,7 +41,7 @@
 #define Y_FOLDER_BOX 5
 #define X_FOLDER_BOX 0
 #define H_FOLDER_BOX 4
-#define W_FOLDER_BOX 24
+#define W_FOLDER_BOX 20
 #define N_FOLDER_BOX 4
 
 #define Y_ELBOW_WINDOW 2
@@ -142,8 +150,8 @@ static int wrap_folder_entry(struct personal_terminal *pt,
 }
 
 /**
- * Write a folder entry text body. Uses the selected entry, and the current
- * scroll.
+ * Draws the content box according to the state of the terminal. Hopefully,
+ * you've wrapped the text already!
  */
 static void draw_content_text(struct personal_terminal *pt)
 {
@@ -187,6 +195,10 @@ static void draw_content_text(struct personal_terminal *pt)
 	return;
 }
 
+/**
+ * Draws the elbow box, which contains the little elbow connector that joins
+ * the selected folder with the content title.
+ */
 static void draw_elbow_box(struct personal_terminal *pt)
 {
 	unsigned int i;
@@ -209,6 +221,9 @@ static void draw_elbow_box(struct personal_terminal *pt)
 	wnoutrefresh(pt->elbow_box);
 }
 
+/**
+ * Draws the content title. Not much special here.
+ */
 static void draw_content_title(struct personal_terminal *pt)
 {
 	wclear(pt->content_title);
@@ -219,6 +234,12 @@ static void draw_content_title(struct personal_terminal *pt)
 	wnoutrefresh(pt->content_title);
 }
 
+/**
+ * Draws the folder box. This never gets cleared, and as a result we can skip
+ * the overhead of drawing the text each time, and simply do the outline. This
+ * function will insert a connector for the elbow at the appropriate location.
+ * It will also select the appropriate attributes for printing.
+ */
 static void draw_folder_box_outline(struct personal_terminal *pt,
                                     unsigned int i)
 {
@@ -232,6 +253,10 @@ static void draw_folder_box_outline(struct personal_terminal *pt,
 	wnoutrefresh(pt->folder_box[i]);
 }
 
+/**
+ * Select a new folder, index i. If the folder is out of range, don't bother.
+ * This will call the appropriate redrawing code.
+ */
 static void select_folder(struct personal_terminal *pt, int i)
 {
 	if (i < 0 || i >= N_FOLDER_BOX)
@@ -249,6 +274,9 @@ static void select_folder(struct personal_terminal *pt, int i)
 	draw_folder_box_outline(pt, pt->selected);
 }
 
+/**
+ * Do a scroll up operation (if possible) and then redraw.
+ */
 static void scroll_up(struct personal_terminal *pt)
 {
 	if (pt->scroll <= 0)
@@ -258,6 +286,9 @@ static void scroll_up(struct personal_terminal *pt)
 	draw_content_text(pt);
 }
 
+/**
+ * Do a scroll down operation (if possible) and then redraw.
+ */
 static void scroll_down(struct personal_terminal *pt)
 {
 	int maxy, maxx, height;
@@ -271,6 +302,9 @@ static void scroll_down(struct personal_terminal *pt)
 	draw_content_text(pt);
 }
 
+/**
+ * Initialize the curses resources and do a first draw of the personal terminal.
+ */
 static int init_personal_terminal(struct personal_terminal *pt)
 {
 	unsigned int i;
@@ -334,6 +368,9 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	return 0;
 }
 
+/**
+ * Handle key presses from the personal terminal.
+ */
 static void personal_terminal_loop(struct personal_terminal *pt)
 {
 	int key;
@@ -356,6 +393,11 @@ static void personal_terminal_loop(struct personal_terminal *pt)
 	}
 }
 
+/**
+ * Run the whole personal terminal, start to finish. Right now this uses some
+ * pre-coded folder entries. Later, I'm assuming that I will have some sort of
+ * configuration so it doesn't have to be hand made.
+ */
 int personal_terminal(void)
 {
 	struct personal_terminal pt;
