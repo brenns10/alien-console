@@ -12,7 +12,9 @@ shown in Alien: Isolation. Features include:
 
   ![real](img/real-splash.jpg)
 
-- (Upcoming) Personal Terminal
+- Personal Terminal
+
+  ![our](img/our-main.png)
 
   Compare to:
 
