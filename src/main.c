@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
 	cbreak();             /* pass key presses to program, but not signals */
 	noecho();             /* don't echo key presses to screen */
 	keypad(stdscr, TRUE); /* allow arrow keys */
-	timeout(0);           /* no blocking on getch() */
+	timeout(-1);          /* block on getch() */
 	curs_set(0);          /* set the cursor to invisible */
 
-	//rv = splash(&params); /* display splash screen */
+	rv = splash(&params); /* display splash screen */
 	if (rv < 0) {
 		mark_error();
 		goto exit;

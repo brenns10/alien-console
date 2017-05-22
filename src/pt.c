@@ -21,6 +21,7 @@
  * +------------------------------------------------------------------------+
  */
 #include <ncurses.h>
+#include <string.h>
 
 #include "alien-console.h"
 
@@ -58,12 +59,140 @@ struct personal_terminal {
 	WINDOW *content_text;
 	WINDOW *elbow_box;
 	WINDOW *folder_box[N_FOLDER_BOX];
+	struct folder_entry *folder_entries[N_FOLDER_BOX];
 	unsigned int selected;
+	unsigned int scroll;
 };
+
+struct folder_entry {
+	char *folder;
+	char *title;
+	char *text;
+	int lines;
+};
+
+char t0[] = "we've got fun and games!";
+struct folder_entry eg0 = {
+	.folder = "PERSONAL",
+	.title  = "Welcome to the jungle",
+	.text = t0,
+};
+
+char t1[] = (
+	"I'm not entirely sure why we have shared messages.\n"
+	"This is just going to be a really long-winded string literal "
+	"that allows me to test such things as text wrapping, and "
+	"scrolling.\n\n"
+	"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus posuere libero at nulla dignissim porta. Etiam quam nibh, tempor et lectus id, viverra fringilla augue. Sed sed laoreet erat. Etiam tempor eget felis eget porta. Aenean purus arcu, venenatis et cursus non, imperdiet non diam. Etiam et scelerisque leo, non auctor ante. Suspendisse potenti.\n\n"
+	"Duis faucibus justo in turpis elementum auctor. Nunc quis vulputate tortor, fermentum vehicula lorem. Cras ex ipsum, lacinia sit amet lacus et, tincidunt consequat dui. Integer sollicitudin dignissim augue vulputate fermentum. Suspendisse potenti. Phasellus gravida eu ipsum sed lacinia. Aliquam eget hendrerit sem. Pellentesque venenatis, tortor at dictum malesuada, lorem enim porttitor nulla, ut pellentesque dui orci sed massa. Maecenas vehicula eleifend dolor, et molestie ante congue non. Etiam mi purus, mattis nec eros non, rutrum rutrum ligula.\n\n"
+	"Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis quis aliquam purus. Etiam mollis pulvinar justo, consectetur posuere tellus. Aliquam hendrerit, arcu sed vestibulum venenatis, massa urna sollicitudin ante, ut eleifend nisl ipsum lacinia nunc. Donec at arcu fringilla, sollicitudin dui non, molestie lorem. Phasellus risus justo, malesuada vitae urna at, pulvinar feugiat ante. Nulla ac lorem nec ipsum vehicula sodales. Vestibulum rutrum tortor quis ante scelerisque, et dictum orci sodales. Ut fermentum, nisl sed venenatis elementum, erat leo hendrerit sapien, vitae vulputate nulla lectus sed ligula. Sed turpis erat, laoreet et velit non, vulputate convallis orci. Ut eu interdum mi. Donec quis accumsan lacus, sit amet vestibulum nisl."
+);
+struct folder_entry eg1 = {
+	.folder = "SHARED",
+	.title  = "This is a shared message",
+	.text = t1,
+};
+
+char t2[] = "If this were really a video game I could let you turn out the lights.";
+struct folder_entry eg2 = {
+	.folder = "UTILITY",
+	.title  = "Turn out the lights",
+	.text = t2,
+};
+
+char t3[] = "This is a letter from me, Stephen.";
+struct folder_entry eg3 = {
+	.folder = "PERSONAL",
+	.title  = "Hello!",
+	.text = t3,
+};
+
+/**
+ * Insert newlines at spaces in the string so that lines are no longer than the
+ * width of the box (subtracting 2 to account for the box lines).
+ */
+static int wrap_folder_entry(struct personal_terminal *pt,
+                             struct folder_entry *entry)
+{
+	int maxy, maxx, width, i;
+	int last_space = -1, line_length = 0;
+	getmaxyx(pt->content_text, maxy, maxx);
+	(void) maxy; /* unused */
+	width = maxx - 2;
+
+	for (i = 0; entry->text[i]; i++) {
+		if (entry->text[i] == ' ') {
+			line_length++;
+			last_space = i;
+		} else if (entry->text[i] == '\n') {
+			line_length = 0;
+			last_space = -1;
+		} else {
+			line_length++;
+		}
+		if (line_length > width) {
+			if (line_length == -1) {
+				set_error(EBIGTEXT);
+				return -1;
+			}
+			entry->text[last_space] = '\n';
+			line_length = i - last_space;
+			last_space = -1;
+		}
+	}
+	entry->lines = count_lines(entry->text);
+	return 0;
+}
+
+/**
+ * Write a folder entry text body. Uses the selected entry, and the current
+ * scroll.
+ */
+static void write_folder_entry(struct personal_terminal *pt)
+{
+	int maxy, maxx, nlines, i;
+	unsigned int scroll = pt->scroll;
+	char *str = pt->folder_entries[pt->selected]->text;
+	wclear(pt->content_text);
+	box(pt->content_text, 0, 0);
+	getmaxyx(pt->content_text, maxy, maxx);
+	(void) maxx; /* unused */
+	nlines = maxy - 2;
+
+	/* move to line */
+	while (scroll > 0 && str) {
+		str = strchr(str, '\n');
+	}
+
+	/* scrolled past content. try not to do this */
+	if (!str) {
+		wnoutrefresh(pt->content_text);
+		return;
+	}
+
+	/* now do the printing */
+	for (i = 0; i < nlines && str; i++) {
+		char *newstr = strchr(str, '\n');
+		if (!newstr) {
+			/* no newline before end of string, but there could be
+			 * more text, so let's print this string and then exit
+			 */
+			mvwaddstr(pt->content_text, 1 + i, 1, str);
+			str = newstr;
+		} else {
+			/* the normal case */
+			mvwaddnstr(pt->content_text, 1 + i, 1, str, newstr - str);
+			str = newstr + 1;
+		}
+	}
+	wnoutrefresh(pt->content_text);
+	return;
+}
 
 static void draw_selected_elbow(struct personal_terminal *pt)
 {
 	unsigned int i;
+	wclear(pt->elbow_box);
 	wattron(pt->elbow_box, A_BOLD);
 	mvwaddch(pt->elbow_box, 1, 2, ACS_HLINE);
 	mvwaddch(pt->elbow_box, 1, 1, ACS_ULCORNER);
@@ -73,11 +202,13 @@ static void draw_selected_elbow(struct personal_terminal *pt)
 			mvwaddch(pt->elbow_box, 3 + i, 1, ACS_LRCORNER);
 			mvwaddch(pt->elbow_box, 3 + 1, 0, ACS_HLINE);
 			wattroff(pt->elbow_box, A_BOLD);
+			wnoutrefresh(pt->elbow_box);
 			return;
 		} else {
 			mvwaddch(pt->elbow_box, 3 + i, 1, ACS_VLINE);
 		}
 	}
+	wnoutrefresh(pt->elbow_box);
 }
 
 static int init_personal_terminal(struct personal_terminal *pt)
@@ -94,7 +225,8 @@ static int init_personal_terminal(struct personal_terminal *pt)
 		set_error(ENARROW);
 		return -1;
 	}
-	pt->selected = 0;
+	pt->selected = 1;
+	pt->scroll = 0;
 
 	/* draw personal terminal text in reverse video at top of screen */
 	move(Y_PERSONAL_TERMINAL, X_PERSONAL_TERMINAL);
@@ -132,7 +264,6 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	pt->elbow_box = newwin(H_ELBOW_WINDOW, W_ELBOW_WINDOW, Y_ELBOW_WINDOW,
 	                       X_ELBOW_WINDOW);
 	draw_selected_elbow(pt);
-	wnoutrefresh(pt->elbow_box);
 
 	/* draw the folder boxes */
 	for (i = 0; i < N_FOLDER_BOX; i++) {
@@ -142,16 +273,28 @@ static int init_personal_terminal(struct personal_terminal *pt)
 		wattron(pt->folder_box[i], (i == pt->selected ? A_BOLD : A_DIM));
 		box(pt->folder_box[i], 0, 0);
 		wattroff(pt->folder_box[i], (i == pt->selected ? A_BOLD : A_DIM));
+		mvwaddstr(pt->folder_box[i], 1, 1, pt->folder_entries[i]->folder);
 		wnoutrefresh(pt->folder_box[i]);
+		if (wrap_folder_entry(pt, pt->folder_entries[i]) < 0) {
+			mark_error();
+			return -1;
+		}
 	}
+	write_folder_entry(pt);
 
 	doupdate();
-	sleep(5);
+	getch();
+	return 0;
 }
 
 int personal_terminal(void)
 {
 	struct personal_terminal pt;
+
+	pt.folder_entries[0] = &eg0;
+	pt.folder_entries[1] = &eg1;
+	pt.folder_entries[2] = &eg2;
+	pt.folder_entries[3] = &eg3;
 
 	if (init_personal_terminal(&pt) < 0) {
 		mark_error();

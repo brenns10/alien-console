@@ -61,7 +61,7 @@ static int max_line_width(char *splash)
 /**
  * Returns the number of lines in splash.
  */
-static int count_lines(char *splash)
+int count_lines(char *splash)
 {
 	int lines = 1;
 	for (; *splash != '\0'; splash++) {

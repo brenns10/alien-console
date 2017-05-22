@@ -11,6 +11,8 @@
  * UTILITES
  */
 #define nelem(x) (sizeof(x) / sizeof(x[0]))
+int count_lines(char *);
+
 
 /*
  * SPLASH SCREEN
