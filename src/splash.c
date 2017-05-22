@@ -128,11 +128,11 @@ static int splash_compute_layout(const struct splash_params *params,
 	getmaxyx(stdscr, layout->maxy, layout->maxx);
 
 	if (layout->splash_lines + 5 > layout->maxy) {
-		set_error(ENARROW);
+		set_error(ESHORT);
 		return -1;
 	}
 	if (layout->splash_width > layout->maxx) {
-		set_error(ESHORT);
+		set_error(ENARROW);
 		return -1;
 	}
 	if ((int)strlen(params->copyright) > layout->maxx) {
