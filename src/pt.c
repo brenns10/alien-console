@@ -28,7 +28,7 @@
 #define X_PERSONAL_TERMINAL 0
 
 #define Y_FOLDERS 4
-#define X_FOLDERS 0
+#define X_FOLDERS 1
 #define Y_FOLDER_BOX 5
 #define X_FOLDER_BOX 0
 #define H_FOLDER_BOX 4
