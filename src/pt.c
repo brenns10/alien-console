@@ -79,10 +79,8 @@ struct folder_entry eg0 = {
 };
 
 char t1[] = (
-	"I'm not entirely sure why we have shared messages.\n"
-	"This is just going to be a really long-winded string literal "
-	"that allows me to test such things as text wrapping, and "
-	"scrolling.\n\n"
+	"What is the shared folder for? Who knows! But it's in the screenshots and so we're using it.\n\n"
+	"This is just going to be a really long-winded string literal that allows me to test such things as text wrapping, and scrolling.\n\n"
 	"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus posuere libero at nulla dignissim porta. Etiam quam nibh, tempor et lectus id, viverra fringilla augue. Sed sed laoreet erat. Etiam tempor eget felis eget porta. Aenean purus arcu, venenatis et cursus non, imperdiet non diam. Etiam et scelerisque leo, non auctor ante. Suspendisse potenti.\n\n"
 	"Duis faucibus justo in turpis elementum auctor. Nunc quis vulputate tortor, fermentum vehicula lorem. Cras ex ipsum, lacinia sit amet lacus et, tincidunt consequat dui. Integer sollicitudin dignissim augue vulputate fermentum. Suspendisse potenti. Phasellus gravida eu ipsum sed lacinia. Aliquam eget hendrerit sem. Pellentesque venenatis, tortor at dictum malesuada, lorem enim porttitor nulla, ut pellentesque dui orci sed massa. Maecenas vehicula eleifend dolor, et molestie ante congue non. Etiam mi purus, mattis nec eros non, rutrum rutrum ligula.\n\n"
 	"Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis quis aliquam purus. Etiam mollis pulvinar justo, consectetur posuere tellus. Aliquam hendrerit, arcu sed vestibulum venenatis, massa urna sollicitudin ante, ut eleifend nisl ipsum lacinia nunc. Donec at arcu fringilla, sollicitudin dui non, molestie lorem. Phasellus risus justo, malesuada vitae urna at, pulvinar feugiat ante. Nulla ac lorem nec ipsum vehicula sodales. Vestibulum rutrum tortor quis ante scelerisque, et dictum orci sodales. Ut fermentum, nisl sed venenatis elementum, erat leo hendrerit sapien, vitae vulputate nulla lectus sed ligula. Sed turpis erat, laoreet et velit non, vulputate convallis orci. Ut eu interdum mi. Donec quis accumsan lacus, sit amet vestibulum nisl."
@@ -161,7 +159,8 @@ static void write_folder_entry(struct personal_terminal *pt)
 
 	/* move to line */
 	while (scroll > 0 && str) {
-		str = strchr(str, '\n');
+		scroll--;
+		str = strchr(str, '\n') + 1;
 	}
 
 	/* scrolled past content. try not to do this */
@@ -200,7 +199,7 @@ static void draw_selected_elbow(struct personal_terminal *pt)
 	for (i = 0; i < N_FOLDER_BOX * W_FOLDER_BOX; i++) {
 		if (i == pt->selected * H_FOLDER_BOX + 1) {
 			mvwaddch(pt->elbow_box, 3 + i, 1, ACS_LRCORNER);
-			mvwaddch(pt->elbow_box, 3 + 1, 0, ACS_HLINE);
+			mvwaddch(pt->elbow_box, 3 + i, 0, ACS_HLINE);
 			wattroff(pt->elbow_box, A_BOLD);
 			wnoutrefresh(pt->elbow_box);
 			return;
@@ -209,6 +208,61 @@ static void draw_selected_elbow(struct personal_terminal *pt)
 		}
 	}
 	wnoutrefresh(pt->elbow_box);
+}
+
+static void select_folder(struct personal_terminal *pt, int i)
+{
+	if (i < 0 || i >= N_FOLDER_BOX)
+		return;
+
+	/* make old selection dim */
+	wattron(pt->folder_box[pt->selected], A_DIM);
+	box(pt->folder_box[pt->selected], 0, 0);
+	wattroff(pt->folder_box[pt->selected], A_DIM);
+	wnoutrefresh(pt->folder_box[pt->selected]);
+
+	/* adjust data structure to point to new selected item */
+	pt->selected = (unsigned int) i;
+	pt->scroll = 0;
+
+	/* draw connecting elbow and text */
+	draw_selected_elbow(pt);
+	write_folder_entry(pt);
+
+	/* write title in title box */
+	wclear(pt->content_title);
+	box(pt->content_title, 0, 0);
+	mvwaddstr(pt->content_title, 1, 1,
+	          pt->folder_entries[pt->selected]->title);
+	wnoutrefresh(pt->content_title);
+
+	/* make new selection bright */
+	wattron(pt->folder_box[pt->selected], A_BOLD);
+	box(pt->folder_box[pt->selected], 0, 0);
+	wattroff(pt->folder_box[pt->selected], A_BOLD);
+	wnoutrefresh(pt->folder_box[pt->selected]);
+}
+
+static void scroll_up(struct personal_terminal *pt)
+{
+	if (pt->scroll <= 0)
+		return;
+
+	pt->scroll -= 1;
+	write_folder_entry(pt);
+}
+
+static void scroll_down(struct personal_terminal *pt)
+{
+	int maxy, maxx, height;
+	getmaxyx(pt->content_text, maxy, maxx);
+	(void)maxx; /* unused */
+	height = maxy - 2;
+	if ((int)pt->scroll + height >= pt->folder_entries[pt->selected]->lines) {
+		return;
+	}
+	pt->scroll += 1;
+	write_folder_entry(pt);
 }
 
 static int init_personal_terminal(struct personal_terminal *pt)
@@ -225,7 +279,7 @@ static int init_personal_terminal(struct personal_terminal *pt)
 		set_error(ENARROW);
 		return -1;
 	}
-	pt->selected = 1;
+	pt->selected = 0;
 	pt->scroll = 0;
 
 	/* draw personal terminal text in reverse video at top of screen */
@@ -241,7 +295,7 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	/* draw bottom bar with instructions */
 	move(pt->maxy - 1, 0);
 	attron(A_DIM);
-	addstr("UP, DOWN: select folder | LEFT, RIGHT: scroll | ESC: exit");
+	addstr("UP, DOWN: select folder | LEFT, RIGHT: scroll | q: exit");
 	attroff(A_DIM);
 
 	/* refresh stdscr but don't output to terminal until all is done */
@@ -251,6 +305,8 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	pt->content_title = newwin(H_CONTENT_TITLE, pt->maxx - X_CONTENT_TITLE,
 	                           Y_CONTENT_TITLE, X_CONTENT_TITLE);
 	box(pt->content_title, 0, 0);
+	mvwaddstr(pt->content_title, 1, 1,
+	          pt->folder_entries[pt->selected]->title);
 	wnoutrefresh(pt->content_title);
 
 	/* draw the content text box */
@@ -283,8 +339,29 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	write_folder_entry(pt);
 
 	doupdate();
-	getch();
 	return 0;
+}
+
+static void personal_terminal_loop(struct personal_terminal *pt)
+{
+	int key;
+	while ((key = getch()) != 'q') {
+		switch (key) {
+		case KEY_UP:
+			select_folder(pt, pt->selected - 1);
+			break;
+		case KEY_DOWN:
+			select_folder(pt, pt->selected + 1);
+			break;
+		case KEY_LEFT:
+			scroll_up(pt);
+			break;
+		case KEY_RIGHT:
+			scroll_down(pt);
+			break;
+		}
+		doupdate();
+	}
 }
 
 int personal_terminal(void)
@@ -300,6 +377,8 @@ int personal_terminal(void)
 		mark_error();
 		return -1;
 	}
+
+	personal_terminal_loop(&pt);
 
 	return 0;
 }
