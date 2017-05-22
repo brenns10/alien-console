@@ -25,6 +25,11 @@ struct splash_params {
 int splash(const struct splash_params *params);
 
 /*
+ * PERSONAL TERMINAL
+ */
+int personal_terminal(void);
+
+/*
  * ERROR HANDLING (see error.c for an overview)
  */
 enum error {

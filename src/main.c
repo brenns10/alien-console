@@ -15,7 +15,7 @@ static struct splash_params params = {
 
 int main(int argc, char *argv[])
 {
-	int rv;
+	int rv = 0;
 
 	(void) argc;
 	(void) argv;
@@ -28,7 +28,13 @@ int main(int argc, char *argv[])
 	timeout(0);           /* no blocking on getch() */
 	curs_set(0);          /* set the cursor to invisible */
 
-	rv = splash(&params); /* display splash screen */
+	//rv = splash(&params); /* display splash screen */
+	if (rv < 0) {
+		mark_error();
+		goto exit;
+	}
+
+	rv = personal_terminal(); /* display pt (main loop) */
 	if (rv < 0) {
 		mark_error();
 		goto exit;
