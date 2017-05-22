@@ -96,7 +96,7 @@ static int splash_load(char *filename)
 
 	splash_file = fopen(filename, "r");
 	if (!splash_file) {
-		perror("open");
+		set_error(ESYS);
 		return -1;
 	}
 
