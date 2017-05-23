@@ -25,7 +25,7 @@ struct pt_entry {
 };
 
 struct splash_params {
-	char *filename;
+	FILE *file;
 	char *tagline;
 	char *copyright;
 };

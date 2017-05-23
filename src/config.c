@@ -41,6 +41,26 @@ static int get_parent_fd(const char *filename)
 	return -1;
 }
 
+static FILE *open_rel(const char *filename, int dirfd)
+{
+	int fd;
+	FILE *f;
+	fd = openat(dirfd, filename, O_RDONLY);
+	if (fd < 0) {
+		set_error(ESYS);
+		return NULL;
+	}
+
+	f = fdopen(fd, "r");
+	if (!f) {
+		set_error(ESYS);
+		close(fd);
+		return NULL;
+	}
+
+	return f;
+}
+
 /**
  * Cleanup an entry.
  */
@@ -58,7 +78,7 @@ static int parse_pt_entry(config_setting_t *setting, struct pt_entry *entry,
                           int dirfd)
 {
 	const char *folder, *title, *content_file;
-	int content_fd, rv = -1;
+	int rv = -1;
 
 	/* so free won't fail */
 	entry->folder = NULL;
@@ -88,16 +108,9 @@ static int parse_pt_entry(config_setting_t *setting, struct pt_entry *entry,
 		goto cleanup;
 	}
 
-	content_fd = openat(dirfd, content_file, O_RDONLY);
-	if (content_fd < 0) {
-		set_error(ESYS);
-		goto cleanup;
-	}
-
-	entry->content = fdopen(content_fd, "r");
+	entry->content = open_rel(content_file, dirfd);
 	if (!entry->content) {
-		set_error(ESYS);
-		close(content_fd);
+		mark_error();
 		goto cleanup;
 	}
 
@@ -121,7 +134,7 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params,
 	const char *filename, *tagline, *copyright;
 
 	/* so free() won't fail */
-	params->splash.filename = NULL;
+	params->splash.file = NULL;
 	params->splash.tagline = NULL;
 	params->splash.copyright = NULL;
 
@@ -139,25 +152,29 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params,
 		set_error(ECONFSET);
 		return -1;
 	}
-	params->splash.filename = strdup(filename);
 	params->splash.tagline = strdup(tagline);
 	params->splash.copyright = strdup(copyright);
-	if (!params->splash.filename || !params->splash.tagline ||
-	    !params->splash.copyright) {
+	if (!params->splash.tagline || !params->splash.copyright) {
 		set_error(EMEM);
+		goto cleanup_strings;
+	}
+
+	params->splash.file = open_rel(filename, dirfd);
+	if (!params->splash.file) {
+		mark_error();
 		goto cleanup_strings;
 	}
 
 	entry_list = config_setting_lookup(setting, "entries");
 	if (!entry_list || !config_setting_is_list(entry_list)) {
 		set_error(ECONFSET);
-		goto cleanup_strings;
+		goto cleanup_file;
 	}
 
 	len = config_setting_length(entry_list);
 	if (len > (int) nelem(params->entries)) {
 		set_error(E2MANY);
-		goto cleanup_strings;
+		goto cleanup_file;
 	}
 	params->num_entries = len;
 
@@ -179,8 +196,9 @@ cleanup_entries:
 	while (--i >= 0) {
 		cleanup_pt_entry(&params->entries[i]);
 	}
+cleanup_file:
+	fclose(params->splash.file);
 cleanup_strings:
-	free(params->splash.filename);
 	free(params->splash.tagline);
 	free(params->splash.copyright);
 exit:
@@ -242,7 +260,7 @@ exit:
 void cleanup_config(struct pt_params *params)
 {
 	int i;
-	free(params->splash.filename);
+	fclose(params->splash.file);
 	free(params->splash.tagline);
 	free(params->splash.copyright);
 	for (i = 0; i < params->num_entries; i++) {

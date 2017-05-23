@@ -89,16 +89,9 @@ static void splash_sleep(int maxx)
 /**
  * Loads the splash file into the statically allocated splash buffer.
  */
-static int splash_load(char *filename)
+static int splash_load(FILE *splash_file)
 {
-	FILE *splash_file;
 	size_t bytes;
-
-	splash_file = fopen(filename, "r");
-	if (!splash_file) {
-		set_error(ESYS);
-		return -1;
-	}
 
 	bytes = fread(splash_contents, 1, sizeof(splash_contents), splash_file);
 	if (bytes >= sizeof(splash_contents) - 1) {
@@ -109,7 +102,6 @@ static int splash_load(char *filename)
 		set_error(ESYS);
 		return -1;
 	}
-	fclose(splash_file);
 
 	/* ensure we have a trailing newline and null terminator */
 	if (splash_contents[bytes-1] != '\n') {
@@ -187,7 +179,7 @@ int splash(const struct splash_params *params)
 {
 	struct splash_layout layout;
 
-	if (splash_load(params->filename) < 0) {
+	if (splash_load(params->file) < 0) {
 		mark_error();
 		return -1;
 	}
