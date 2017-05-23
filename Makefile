@@ -16,3 +16,4 @@ debug: CFLAGS += -DDEBUG -g
 debug: $(NAME)
 
 release: CFLAGS += -DRELEASE
+release: $(NAME)
