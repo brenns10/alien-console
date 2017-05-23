@@ -8,7 +8,11 @@
 
 static struct splash_params params = {
 	/* figlet -f slant nostromolink > splash.txt */
+	#ifdef RELEASE
+	.filename = "/usr/share/alien-console/splash.txt"
+	#else
 	.filename = "splash.txt",
+	#endif
 	.tagline = "AN SM-LINK PRODUCT",
 	.copyright = "(C) SM-LINK DATA SYSTEMS",
 };
