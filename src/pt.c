@@ -81,39 +81,6 @@ struct personal_terminal {
 	unsigned int scroll;
 };
 
-char t0[] = "we've got fun and games!";
-struct folder_entry eg0 = {
-	.folder = "PERSONAL",
-	.title  = "Welcome to the jungle",
-	.text = t0,
-};
-
-char t1[] = "What is the shared folder for? Who knows! But it's in the screenshots and so we're using it.\n\n"
-	"This is just going to be a really long-winded string literal that allows me to test such things as text wrapping, and scrolling.\n\n"
-	"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus posuere libero at nulla dignissim porta. Etiam quam nibh, tempor et lectus id, viverra fringilla augue. Sed sed laoreet erat. Etiam tempor eget felis eget porta. Aenean purus arcu, venenatis et cursus non, imperdiet non diam. Etiam et scelerisque leo, non auctor ante. Suspendisse potenti.\n\n"
-	"Duis faucibus justo in turpis elementum auctor. Nunc quis vulputate tortor, fermentum vehicula lorem. Cras ex ipsum, lacinia sit amet lacus et, tincidunt consequat dui. Integer sollicitudin dignissim augue vulputate fermentum. Suspendisse potenti. Phasellus gravida eu ipsum sed lacinia. Aliquam eget hendrerit sem. Pellentesque venenatis, tortor at dictum malesuada, lorem enim porttitor nulla, ut pellentesque dui orci sed massa. Maecenas vehicula eleifend dolor, et molestie ante congue non. Etiam mi purus, mattis nec eros non, rutrum rutrum ligula.\n\n"
-	"Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis quis aliquam purus. Etiam mollis pulvinar justo, consectetur posuere tellus. Aliquam hendrerit, arcu sed vestibulum venenatis, massa urna sollicitudin ante, ut eleifend nisl ipsum lacinia nunc. Donec at arcu fringilla, sollicitudin dui non, molestie lorem. Phasellus risus justo, malesuada vitae urna at, pulvinar feugiat ante. Nulla ac lorem nec ipsum vehicula sodales. Vestibulum rutrum tortor quis ante scelerisque, et dictum orci sodales. Ut fermentum, nisl sed venenatis elementum, erat leo hendrerit sapien, vitae vulputate nulla lectus sed ligula. Sed turpis erat, laoreet et velit non, vulputate convallis orci. Ut eu interdum mi. Donec quis accumsan lacus, sit amet vestibulum nisl.";
-
-struct folder_entry eg1 = {
-	.folder = "SHARED",
-	.title  = "This is a shared message",
-	.text = t1,
-};
-
-char t2[] = "If this were really a video game I could let you turn out the lights.";
-struct folder_entry eg2 = {
-	.folder = "UTILITY",
-	.title  = "Turn out the lights",
-	.text = t2,
-};
-
-char t3[] = "This is a letter from me, Stephen.";
-struct folder_entry eg3 = {
-	.folder = "PERSONAL",
-	.title  = "Hello!",
-	.text = t3,
-};
-
 /**
  * Insert newlines at spaces in the string so that lines are no longer than the
  * width of the box (subtracting 2 to account for the box lines).
@@ -420,6 +387,8 @@ static int pt_load_file(struct pt_params *params, struct personal_terminal *pt,
 			free(buf);
 			return -1;
 		}
+		if (feof(f))
+			break;
 		if (contents == bufsize) {
 			bufsize *= 2;
 			newbuf = realloc(buf, bufsize);

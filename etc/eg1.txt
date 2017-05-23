@@ -1,0 +1,9 @@
+What is the shared folder for? Who knows! But it's in the screenshots and so we're using it.
+
+This is just going to be a really long-winded string literal that allows me to test such things as text wrapping, and scrolling.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus posuere libero at nulla dignissim porta. Etiam quam nibh, tempor et lectus id, viverra fringilla augue. Sed sed laoreet erat. Etiam tempor eget felis eget porta. Aenean purus arcu, venenatis et cursus non, imperdiet non diam. Etiam et scelerisque leo, non auctor ante. Suspendisse potenti.
+
+Duis faucibus justo in turpis elementum auctor. Nunc quis vulputate tortor, fermentum vehicula lorem. Cras ex ipsum, lacinia sit amet lacus et, tincidunt consequat dui. Integer sollicitudin dignissim augue vulputate fermentum. Suspendisse potenti. Phasellus gravida eu ipsum sed lacinia. Aliquam eget hendrerit sem. Pellentesque venenatis, tortor at dictum malesuada, lorem enim porttitor nulla, ut pellentesque dui orci sed massa. Maecenas vehicula eleifend dolor, et molestie ante congue non. Etiam mi purus, mattis nec eros non, rutrum rutrum ligula.
+
+Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Duis quis aliquam purus. Etiam mollis pulvinar justo, consectetur posuere tellus. Aliquam hendrerit, arcu sed vestibulum venenatis, massa urna sollicitudin ante, ut eleifend nisl ipsum lacinia nunc. Donec at arcu fringilla, sollicitudin dui non, molestie lorem. Phasellus risus justo, malesuada vitae urna at, pulvinar feugiat ante. Nulla ac lorem nec ipsum vehicula sodales. Vestibulum rutrum tortor quis ante scelerisque, et dictum orci sodales. Ut fermentum, nisl sed venenatis elementum, erat leo hendrerit sapien, vitae vulputate nulla lectus sed ligula. Sed turpis erat, laoreet et velit non, vulputate convallis orci. Ut eu interdum mi. Donec quis accumsan lacus, sit amet vestibulum nisl.

@@ -60,10 +60,11 @@ enum error {
 	ESHORT       = 2,
 	EBIGFILE     = 3,
 	EBIGTEXT     = 4,
-	ECONFIG      = 5,
-	ECONFSET     = 6,
-	EMEM         = 7,
-	E2MANY       = 8,
+	ECONFREAD    = 5,
+	ECONFPARSE   = 6,
+	ECONFSET     = 7,
+	EMEM         = 8,
+	E2MANY       = 9,
 };
 
 const char *error_string(void);

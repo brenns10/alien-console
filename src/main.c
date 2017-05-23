@@ -12,6 +12,18 @@ int main(int argc, char *argv[])
 	struct pt_params params;
 	char *config;
 
+	if (argc < 2) {
+		config = "/etc/alien-console.conf";
+	} else {
+		config = argv[1];
+	}
+	printf("%s\n", config);
+	rv = parse_config(config, &params);
+	if (rv < 0) {
+		mark_error();
+		goto exit;
+	}
+
 	/* ncurses initialization */
 	initscr();            /* initialize curses */
 	cbreak();             /* pass key presses to program, but not signals */
@@ -20,16 +32,6 @@ int main(int argc, char *argv[])
 	timeout(-1);          /* block on getch() */
 	curs_set(0);          /* set the cursor to invisible */
 
-	if (argc < 2) {
-		config = "/etc/alien-console.conf";
-	} else {
-		config = argv[1];
-	}
-	rv = parse_config(config, &params);
-	if (rv < 0) {
-		mark_error();
-		goto exit;
-	}
 
 	rv = splash(&params.splash); /* display splash screen */
 	if (rv < 0) {
@@ -47,9 +49,9 @@ cleanup:
 	cleanup_config(&params);
 
 	// Deinitialize NCurses
-exit:
 	wclear(stdscr);
 	endwin();
+exit:
 	if (rv < 0) {
 		report_error(stderr);
 		return rv;

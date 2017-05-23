@@ -89,8 +89,8 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params)
 	params->splash.filename = strdup(filename);
 	params->splash.tagline = strdup(tagline);
 	params->splash.copyright = strdup(copyright);
-	if (params->splash.filename || params->splash.tagline ||
-	    params->splash.copyright) {
+	if (!params->splash.filename || !params->splash.tagline ||
+	    !params->splash.copyright) {
 		set_error(EMEM);
 		goto cleanup_strings;
 	}
@@ -102,7 +102,7 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params)
 	}
 
 	len = config_setting_length(entry_list);
-	if (len >= (int) nelem(params->entries)) {
+	if (len > (int) nelem(params->entries)) {
 		set_error(E2MANY);
 		goto cleanup_strings;
 	}
@@ -146,13 +146,15 @@ int parse_config(const char *filename, struct pt_params *params)
 
 	config_init(&conf);
 	if (!config_read_file(&conf, filename)) {
-		if (config_error_type(&conf) == CONFIG_ERR_PARSE)
+		if (config_error_type(&conf) == CONFIG_ERR_PARSE) {
 			fprintf(stderr, "in line %d: %s\n",
 			        config_error_line(&conf),
 			        config_error_text(&conf));
-		else
+			set_error(ECONFPARSE);
+		} else {
 			fprintf(stderr, "I/O error for %s\n", filename);
-		set_error(ECONFIG);
+			set_error(ECONFREAD);
+		}
 		goto exit;
 	}
 
