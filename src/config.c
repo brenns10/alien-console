@@ -2,12 +2,44 @@
  * alien-console: configuration
  * Copyright (c) 2017 Stephen Brennan. Released under the Revised BSD License.
  */
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <libconfig.h>
 
 #include "alien-console.h"
+
+/**
+ * Get directory fd associated with filename.
+ */
+static int get_parent_fd(const char *filename)
+{
+	int i, fd;
+	char *fildup = strdup(filename);
+	if (!fildup) {
+		set_error(EMEM);
+		return -1;
+	}
+	i = strlen(fildup);
+	for (i = strlen(fildup); i >= 0; i--) {
+		if (fildup[i] == '/') {
+			fildup[i+1] = '\0';
+			fd = open(fildup, O_RDONLY);
+			free(fildup);
+			if (fd < 0) {
+				set_error(ESYS);
+				return -1;
+			}
+			return fd;
+		}
+	}
+	free(fildup);
+	set_error(EBADFILE);
+	return -1;
+}
 
 /**
  * Cleanup an entry.
@@ -16,52 +48,73 @@ static void cleanup_pt_entry(struct pt_entry *entry)
 {
 	free(entry->folder);
 	free(entry->title);
-	free(entry->content_file);
+	fclose(entry->content);
 }
 
 /**
  * Parse a single PT folder entry item.
  */
-static int parse_pt_entry(config_setting_t *setting, struct pt_entry *entry)
+static int parse_pt_entry(config_setting_t *setting, struct pt_entry *entry,
+                          int dirfd)
 {
 	const char *folder, *title, *content_file;
+	int content_fd, rv = -1;
 
 	/* so free won't fail */
 	entry->folder = NULL;
 	entry->title = NULL;
-	entry->content_file = NULL;
+	entry->content = NULL;
 
 	if (!config_setting_lookup_string(setting, "folder", &folder)) {
 		set_error(ECONFSET);
-		return -1;
+		goto exit;
 	}
 
 	if (!config_setting_lookup_string(setting, "title", &title)) {
 		set_error(ECONFSET);
-		return -1;
+		goto exit;
 	}
 
 	if (!config_setting_lookup_string(setting, "content_file", &content_file)) {
 		set_error(ECONFSET);
-		return -1;
+		goto exit;
 	}
 
 	entry->folder = strdup(folder);
 	entry->title = strdup(title);
-	entry->content_file = strdup(content_file);
 
-	if (!entry->folder || !entry->title || !entry->content_file) {
+	if (!entry->folder || !entry->title) {
 		set_error(EMEM);
-		cleanup_pt_entry(entry); /* in case any were allocated */
-		return -1;
+		goto cleanup;
 	}
-	return 0;
+
+	content_fd = openat(dirfd, content_file, O_RDONLY);
+	if (content_fd < 0) {
+		set_error(ESYS);
+		goto cleanup;
+	}
+
+	entry->content = fdopen(content_fd, "r");
+	if (!entry->content) {
+		set_error(ESYS);
+		close(content_fd);
+		goto cleanup;
+	}
+
+	rv = 0;
+	goto exit;
+cleanup:
+	free(entry->folder);
+	free(entry->title);
+exit:
+	return rv;
 }
 
 /**
  * Parse a full PT config object, containing multiple (up to 4) entries.
  */
-static int parse_pt_object(config_setting_t *setting, struct pt_params *params)
+static int parse_pt_object(config_setting_t *setting, struct pt_params *params,
+                           int dirfd)
 {
 	int i, len, rv=-1;
 	config_setting_t *entry_list, *entry;
@@ -114,7 +167,7 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params)
 			set_error(ECONFSET);
 			goto cleanup_entries;
 		}
-		if (parse_pt_entry(entry, &params->entries[i]) < 0) {
+		if (parse_pt_entry(entry, &params->entries[i], dirfd) < 0) {
 			mark_error();
 			goto cleanup_entries;
 		}
@@ -140,9 +193,15 @@ exit:
  */
 int parse_config(const char *filename, struct pt_params *params)
 {
-	int rv = -1;
+	int rv = -1, dirfd;
 	config_t conf;
 	config_setting_t *setting;
+
+	dirfd = get_parent_fd(filename);
+	if (dirfd < 0) {
+		mark_error();
+		goto exit;
+	}
 
 	config_init(&conf);
 	if (!config_read_file(&conf, filename)) {
@@ -155,23 +214,25 @@ int parse_config(const char *filename, struct pt_params *params)
 			fprintf(stderr, "I/O error for %s\n", filename);
 			set_error(ECONFREAD);
 		}
-		goto exit;
+		goto cleanup;
 	}
 
 	setting = config_lookup(&conf, "personal_terminal");
 	if (!setting) {
 		set_error(ECONFSET);
-		goto exit;
+		goto cleanup;
 	}
 
-	if (parse_pt_object(setting, params) < 0) {
+	if (parse_pt_object(setting, params, dirfd) < 0) {
 		mark_error();
-		goto exit;
+		goto cleanup;
 	}
 	rv = 0; /* success */
 
-exit:
+cleanup:
+	close(dirfd);
 	config_destroy(&conf);
+exit:
 	return rv;
 }
 

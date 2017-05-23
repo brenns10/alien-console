@@ -50,6 +50,7 @@ static const char *error_values[] = {
 	"Configuration setting was not found or wrong type",
 	"Memory allocation error",
 	"Too many elements in the folder entry list",
+	"Config filename is incorrect, please include a slash",
 };
 
 /**

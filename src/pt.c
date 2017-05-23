@@ -372,7 +372,7 @@ static int pt_load_file(struct pt_params *params, struct personal_terminal *pt,
 {
 	size_t bufsize = CONTENT_BUFFER;
 	size_t contents = 0;
-	FILE *f = fopen(params->entries[i].content_file, "r");
+	FILE *f = params->entries[i].content;
 	char *buf = malloc(bufsize), *newbuf;
 
 	if (!buf) {

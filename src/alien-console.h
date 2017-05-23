@@ -21,7 +21,7 @@ int count_lines(char *);
 struct pt_entry {
 	char *folder;
 	char *title;
-	char *content_file;
+	FILE *content;
 };
 
 struct splash_params {
@@ -67,6 +67,7 @@ enum error {
 	ECONFSET     = 7,
 	EMEM         = 8,
 	E2MANY       = 9,
+	EBADFILE     = 10,
 };
 
 const char *error_string(void);
