@@ -387,8 +387,6 @@ static int pt_load_file(struct pt_params *params, struct personal_terminal *pt,
 			free(buf);
 			return -1;
 		}
-		if (feof(f))
-			break;
 		if (contents == bufsize) {
 			bufsize *= 2;
 			newbuf = realloc(buf, bufsize);
@@ -399,8 +397,12 @@ static int pt_load_file(struct pt_params *params, struct personal_terminal *pt,
 			}
 			buf = newbuf;
 		}
+		if (feof(f))
+			break;
 	}
 
+	/* yeah this is kinda important */
+	buf[contents] = '\0';
 	pt->folder_entries[i].text = buf;
 	return 0;
 }
