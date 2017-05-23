@@ -16,6 +16,8 @@ int count_lines(char *);
 /*
  * CONFIGURATION
  */
+#define SYSTEM_CONFIG "/etc/alien-console/alien-console.conf"
+#define DEFAULT_CONFIG "/usr/share/alien-console/alien-console.conf"
 struct pt_entry {
 	char *folder;
 	char *title;
