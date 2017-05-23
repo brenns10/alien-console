@@ -45,6 +45,10 @@ static const char *error_values[] = {
 	"Terminal is not tall enough",
 	"File exceeds statically allocated buffer",
 	"The user-provided text is too big",
+	"Configuration read error, see message above",
+	"Configuration setting was not found or wrong type",
+	"Memory allocation error",
+	"Too many elements in the folder entry list",
 };
 
 /**

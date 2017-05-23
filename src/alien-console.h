@@ -13,16 +13,33 @@
 #define nelem(x) (sizeof(x) / sizeof(x[0]))
 int count_lines(char *);
 
-
 /*
- * SPLASH SCREEN
+ * CONFIGURATION
  */
+struct pt_entry {
+	char *folder;
+	char *title;
+	char *content_file;
+};
 
 struct splash_params {
 	char *filename;
 	char *tagline;
 	char *copyright;
 };
+
+struct pt_params {
+	struct splash_params splash;
+	struct pt_entry entries[4];
+	int num_entries;
+};
+
+int parse_config(const char *filename, struct pt_params *params);
+
+/*
+ * SPLASH SCREEN
+ */
+
 
 int splash(const struct splash_params *params);
 
@@ -42,6 +59,10 @@ enum error {
 	ESHORT       = 2,
 	EBIGFILE     = 3,
 	EBIGTEXT     = 4,
+	ECONFIG      = 5,
+	ECONFSET     = 6,
+	EMEM         = 7,
+	E2MANY       = 8,
 };
 
 const char *error_string(void);

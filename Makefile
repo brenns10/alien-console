@@ -1,8 +1,8 @@
 CC := gcc
-LIBS=ncurses
+LIBS=ncurses libconfig
 CFLAGS=$(shell pkg-config --cflags $(LIBS)) --std=gnu11 -Wall -Wextra -pedantic
 LDLIBS=$(shell pkg-config --libs $(LIBS))
-OBJECTS := src/error.o src/main.o src/splash.o src/pt.o
+OBJECTS := src/error.o src/main.o src/splash.o src/pt.o src/config.o
 NAME := alien-console
 
 .PHONY: clean
