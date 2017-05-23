@@ -6,23 +6,11 @@
 
 #include "alien-console.h"
 
-static struct splash_params params = {
-	/* figlet -f slant nostromolink > splash.txt */
-	#ifdef RELEASE
-	.filename = "/usr/share/alien-console/splash.txt",
-	#else
-	.filename = "splash.txt",
-	#endif
-	.tagline = "AN SM-LINK PRODUCT",
-	.copyright = "(C) SM-LINK DATA SYSTEMS",
-};
-
 int main(int argc, char *argv[])
 {
 	int rv = 0;
-
-	(void) argc;
-	(void) argv;
+	struct pt_params params;
+	char *config;
 
 	/* ncurses initialization */
 	initscr();            /* initialize curses */
@@ -32,17 +20,31 @@ int main(int argc, char *argv[])
 	timeout(-1);          /* block on getch() */
 	curs_set(0);          /* set the cursor to invisible */
 
-	rv = splash(&params); /* display splash screen */
+	if (argc < 2) {
+		config = "/etc/alien-console.conf";
+	} else {
+		config = argv[1];
+	}
+	rv = parse_config(config, &params);
 	if (rv < 0) {
 		mark_error();
 		goto exit;
 	}
 
-	rv = personal_terminal(); /* display pt (main loop) */
+	rv = splash(&params.splash); /* display splash screen */
 	if (rv < 0) {
 		mark_error();
-		goto exit;
+		goto cleanup;
 	}
+
+	rv = personal_terminal(&params); /* display pt (main loop) */
+	if (rv < 0) {
+		mark_error();
+		goto cleanup;
+	}
+
+cleanup:
+	cleanup_config(&params);
 
 	// Deinitialize NCurses
 exit:

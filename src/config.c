@@ -176,7 +176,8 @@ exit:
 /**
  * Cleanup a config object.
  */
-void cleanup_config(struct pt_params *params) {
+void cleanup_config(struct pt_params *params)
+{
 	int i;
 	free(params->splash.filename);
 	free(params->splash.tagline);

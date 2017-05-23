@@ -28,8 +28,10 @@
  * waits for keypresses and calls corresponding functions. These guys just
  * update the state and then redraw only the things that changed.
  */
-#include <ncurses.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include <ncurses.h>
 
 #include "alien-console.h"
 
@@ -61,22 +63,22 @@
 #define MIN_WIDTH (X_CONTENT_TEXT + CONTENT_TEXT_MIN_WIDTH)
 /* bottom text is 59 characters, so we're limited by layout, not text */
 
+struct folder_entry {
+	char *folder;
+	char *title;
+	char *text;
+	int lines;
+};
+
 struct personal_terminal {
 	int maxy, maxx;
 	WINDOW *content_title;
 	WINDOW *content_text;
 	WINDOW *elbow_box;
 	WINDOW *folder_box[N_FOLDER_BOX];
-	struct folder_entry *folder_entries[N_FOLDER_BOX];
+	struct folder_entry folder_entries[N_FOLDER_BOX];
 	unsigned int selected;
 	unsigned int scroll;
-};
-
-struct folder_entry {
-	char *folder;
-	char *title;
-	char *text;
-	int lines;
 };
 
 char t0[] = "we've got fun and games!";
@@ -157,7 +159,7 @@ static void draw_content_text(struct personal_terminal *pt)
 {
 	int maxy, maxx, nlines, i;
 	unsigned int scroll = pt->scroll;
-	char *str = pt->folder_entries[pt->selected]->text;
+	char *str = pt->folder_entries[pt->selected].text;
 	wclear(pt->content_text);
 	box(pt->content_text, 0, 0);
 	getmaxyx(pt->content_text, maxy, maxx);
@@ -230,7 +232,7 @@ static void draw_content_title(struct personal_terminal *pt)
 	box(pt->content_title, 0, 0);
 	mvwaddch(pt->content_title, 1, 0, ACS_RTEE);
 	mvwaddstr(pt->content_title, 1, 1,
-	          pt->folder_entries[pt->selected]->title);
+	          pt->folder_entries[pt->selected].title);
 	wnoutrefresh(pt->content_title);
 }
 
@@ -295,7 +297,7 @@ static void scroll_down(struct personal_terminal *pt)
 	getmaxyx(pt->content_text, maxy, maxx);
 	(void)maxx; /* unused */
 	height = maxy - 2;
-	if ((int)pt->scroll + height >= pt->folder_entries[pt->selected]->lines) {
+	if ((int)pt->scroll + height >= pt->folder_entries[pt->selected].lines) {
 		return;
 	}
 	pt->scroll += 1;
@@ -351,11 +353,11 @@ static int init_personal_terminal(struct personal_terminal *pt)
 		pt->folder_box[i] = newwin(H_FOLDER_BOX, W_FOLDER_BOX,
 		                           Y_FOLDER_BOX + i * H_FOLDER_BOX,
 		                           X_FOLDER_BOX);
-		mvwaddstr(pt->folder_box[i], 1, 1, pt->folder_entries[i]->folder);
+		mvwaddstr(pt->folder_box[i], 1, 1, pt->folder_entries[i].folder);
 		draw_folder_box_outline(pt, i);
 
 		/* and wrap text (this should move somewhere else) */
-		if (wrap_folder_entry(pt, pt->folder_entries[i]) < 0) {
+		if (wrap_folder_entry(pt, &pt->folder_entries[i]) < 0) {
 			mark_error();
 			return -1;
 		}
@@ -393,26 +395,100 @@ static void personal_terminal_loop(struct personal_terminal *pt)
 	}
 }
 
+#define CONTENT_BUFFER 512
+
+/**
+ * Load a personal_terminal file.
+ */
+static int pt_load_file(struct pt_params *params, struct personal_terminal *pt,
+                        int i)
+{
+	size_t bufsize = CONTENT_BUFFER;
+	size_t contents = 0;
+	FILE *f = fopen(params->entries[i].content_file, "r");
+	char *buf = malloc(bufsize), *newbuf;
+
+	if (!buf) {
+		set_error(EMEM);
+		return -1;
+	}
+
+	while (contents != bufsize) {
+		contents += fread(buf + contents, 1, bufsize - contents, f);
+		if (ferror(f)) {
+			set_error(EMEM);
+			free(buf);
+			return -1;
+		}
+		if (contents == bufsize) {
+			bufsize *= 2;
+			newbuf = realloc(buf, bufsize);
+			if (!newbuf) {
+				free(buf);
+				set_error(EMEM);
+				return -1;
+			}
+			buf = newbuf;
+		}
+	}
+
+	pt->folder_entries[i].text = buf;
+	return 0;
+}
+
+/**
+ * Load personal_terminal contents from config.
+ */
+int pt_load(struct pt_params *params, struct personal_terminal *pt)
+{
+	int i;
+	for (i = 0; i < params->num_entries; i++) {
+		pt->folder_entries[i].folder = params->entries[i].folder;
+		pt->folder_entries[i].title = params->entries[i].title;
+		if (pt_load_file(params, pt, i) < 0) {
+			mark_error();
+			goto err_cleanup;
+		}
+	}
+	return 0;
+
+err_cleanup:
+	while (--i >= 0) {
+		free(pt->folder_entries[i].text);
+	}
+	return -1;
+}
+
 /**
  * Run the whole personal terminal, start to finish. Right now this uses some
  * pre-coded folder entries. Later, I'm assuming that I will have some sort of
  * configuration so it doesn't have to be hand made.
  */
-int personal_terminal(void)
+int personal_terminal(struct pt_params *params)
 {
+	int i;
+	int rv = -1;
 	struct personal_terminal pt;
 
-	pt.folder_entries[0] = &eg0;
-	pt.folder_entries[1] = &eg1;
-	pt.folder_entries[2] = &eg2;
-	pt.folder_entries[3] = &eg3;
+	if (pt_load(params, &pt) < 0) {
+		mark_error();
+		return rv;
+	}
 
 	if (init_personal_terminal(&pt) < 0) {
 		mark_error();
-		return -1;
+		goto exit;
 	}
 
 	personal_terminal_loop(&pt);
+	rv = 0;
 
-	return 0;
+exit:
+	/* change me when dynamic folder entries are allowed */
+	i = 4;
+	while (i-- > 0) {
+		free(pt.folder_entries[i].text);
+	}
+
+	return rv;
 }

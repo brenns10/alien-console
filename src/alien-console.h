@@ -35,6 +35,7 @@ struct pt_params {
 };
 
 int parse_config(const char *filename, struct pt_params *params);
+void cleanup_config(struct pt_params *params);
 
 /*
  * SPLASH SCREEN
@@ -46,7 +47,7 @@ int splash(const struct splash_params *params);
 /*
  * PERSONAL TERMINAL
  */
-int personal_terminal(void);
+int personal_terminal(struct pt_params *params);
 
 /*
  * ERROR HANDLING (see error.c for an overview)
