@@ -6,6 +6,16 @@ shown in Alien: Isolation. When you combine this with a terminal emulator that
 focuses on a retro look (like [Cool Retro Term][]), it doesn't look that far
 off!
 
+The entries in the "Personal Terminal" screen are completely customizable, using
+a configuration file located in:
+
+- the first command line argument, OR
+- `/etc/alien-console/alien-console.conf`, OR
+- `/usr/share/alien-console/alien-console.conf`
+
+See `etc/alien-console.conf` for a sample (which should be installed at
+`/usr/share/alien-console`).
+
 Screenshots
 -----------
 
