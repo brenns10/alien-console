@@ -6,10 +6,12 @@
  * me to handle tabs or anything more complex than spaces and printable
  * characters is just nonsense.
  */
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -183,6 +185,9 @@ pid_t play_startup_sound(void)
 	if (pid == 0) {
 		/* child */
 		char *cmd[] = {"aplay", "-q", "/var/local/console.wav", NULL};
+		int nul = open("/dev/null", O_WRONLY);
+		dup2(nul, STDERR_FILENO);
+		dup2(nul, STDOUT_FILENO);
 		if (execvp(cmd[0], cmd) == -1) {
 			exit(5);
 		}
