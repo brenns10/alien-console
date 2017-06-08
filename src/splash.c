@@ -9,7 +9,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <ncurses.h>
 
@@ -76,8 +78,8 @@ int count_lines(char *splash)
  */
 static void splash_sleep(int maxx)
 {
-	/* sleep for ~5 seconds total during load */
-	double nsec_per_tick = (5.0 / maxx) * 1000000000;
+	/* sleep for ~7 seconds total during load */
+	double nsec_per_tick = (7.0 / maxx) * 1000000000;
 	struct timespec slp;
 	int millis_fuzz = rand() % 20 - 10;
 	slp.tv_sec = 0;
@@ -175,9 +177,24 @@ void splash_display(const struct splash_params *params,
 	splash_sleep(layout->maxx); /* for good measure */
 }
 
+pid_t play_startup_sound(void)
+{
+	pid_t pid = fork();
+	if (pid == 0) {
+		/* child */
+		char *cmd[] = {"aplay", "-q", "/var/local/console.wav", NULL};
+		if (execvp(cmd[0], cmd) == -1) {
+			exit(5);
+		}
+		exit(0);
+	}
+	return pid;
+}
+
 int splash(const struct splash_params *params)
 {
 	struct splash_layout layout;
+	pid_t sound;
 
 	if (splash_load(params->file) < 0) {
 		mark_error();
@@ -189,6 +206,11 @@ int splash(const struct splash_params *params)
 		return -1;
 	}
 
+	sound = play_startup_sound();
 	splash_display(params, &layout);
+	if (sound > 0) {
+		int stuff;
+		waitpid(sound, &stuff, 0);
+	}
 	return 0;
 }
