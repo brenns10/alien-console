@@ -13,8 +13,8 @@ a configuration file located in:
 - `/etc/alien-console/alien-console.conf`, OR
 - `/usr/share/alien-console/alien-console.conf`
 
-See `etc/alien-console.conf` for a sample (which should be installed at
-`/usr/share/alien-console`).
+See `etc/alien-console.conf` for a sample configuration file (which should be
+installed at `/usr/share/alien-console`).
 
 Screenshots
 -----------
@@ -39,3 +39,25 @@ computers.
   ![real](img/real-main.jpg)
 
 [Cool Retro Term]: https://github.com/Swordfish90/cool-retro-term
+
+
+Sound
+-----
+
+This program can play sound effects at startup. If you were to find the sound
+files inside Alien: Isolation which contained the startup sequence sound
+effects, you could place a `wav` file at `/var/local/console.wav` and listen for
+the magic. I don't want to distribute that because copyright.
+
+Install
+-------
+
+I have created an [AUR package](https://aur.archlinux.org/alien-console) for
+Arch Linux. Be sure to install `cool-retro-term` so it will look cool! My
+configuration used in the screenshots can be imported from `nostromo.json`.
+
+Etc
+---
+
+The license is Revised BSD. See `LICENSE` for more details. See the Changelog
+for changes and version info.
