@@ -28,6 +28,7 @@ struct splash_params {
 	FILE *file;
 	char *tagline;
 	char *copyright;
+	char *audio_player;
 };
 
 struct pt_params {

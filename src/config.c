@@ -136,7 +136,7 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params,
 {
 	int i, len, rv=-1;
 	config_setting_t *entry_list, *entry;
-	const char *filename, *tagline, *copyright;
+	const char *filename, *tagline, *copyright, *audio_player;
 
 	/* so free() won't fail */
 	params->splash.file = NULL;
@@ -157,9 +157,15 @@ static int parse_pt_object(config_setting_t *setting, struct pt_params *params,
 		set_error(ECONFSET);
 		return -1;
 	}
+	if (!config_setting_lookup_string(setting, "audio_player", &audio_player)) {
+		set_error(ECONFSET);
+		return -1;
+	}
 	params->splash.tagline = strdup(tagline);
 	params->splash.copyright = strdup(copyright);
-	if (!params->splash.tagline || !params->splash.copyright) {
+	params->splash.audio_player = strdup(audio_player);
+	if (!params->splash.tagline || !params->splash.copyright ||
+	    !params->splash.audio_player) {
 		set_error(EMEM);
 		goto cleanup_strings;
 	}
@@ -206,6 +212,7 @@ cleanup_file:
 cleanup_strings:
 	free(params->splash.tagline);
 	free(params->splash.copyright);
+	free(params->splash.audio_player);
 exit:
 	return rv;
 }
@@ -268,6 +275,7 @@ void cleanup_config(struct pt_params *params)
 	fclose(params->splash.file);
 	free(params->splash.tagline);
 	free(params->splash.copyright);
+	free(params->splash.audio_player);
 	for (i = 0; i < params->num_entries; i++) {
 		cleanup_pt_entry(&params->entries[i]);
 	}

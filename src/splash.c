@@ -179,12 +179,25 @@ void splash_display(const struct splash_params *params,
 	splash_sleep(layout->maxx); /* for good measure */
 }
 
-pid_t play_startup_sound(void)
+/**
+ * Play a startup sound located at "/var/local/console.wav".
+ * I was able to find the console startup noise from the Alien: Isolation game
+ * resources. However I'm not going to distribute it because copyright.
+ * This function returns regardless of error. You should be a good parent and
+ * wait on the pid if it is positive.
+ */
+static pid_t play_startup_sound(const struct splash_params *params)
 {
 	pid_t pid = fork();
 	if (pid == 0) {
 		/* child */
-		char *cmd[] = {"aplay", "-q", "/var/local/console.wav", NULL};
+		char *cmd[] = {
+			params->audio_player,
+			"/var/local/console.wav",
+			NULL
+		};
+		/* rather than trying to shut up the audio player with some
+		 * magic flag, just redirect stderr and stdout to /dev/null */
 		int nul = open("/dev/null", O_WRONLY);
 		dup2(nul, STDERR_FILENO);
 		dup2(nul, STDOUT_FILENO);
@@ -211,7 +224,7 @@ int splash(const struct splash_params *params)
 		return -1;
 	}
 
-	sound = play_startup_sound();
+	sound = play_startup_sound(params);
 	splash_display(params, &layout);
 	if (sound > 0) {
 		int stuff;
