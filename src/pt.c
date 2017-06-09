@@ -77,6 +77,7 @@ struct personal_terminal {
 	WINDOW *elbow_box;
 	WINDOW *folder_box[N_FOLDER_BOX];
 	struct folder_entry folder_entries[N_FOLDER_BOX];
+	int folder_count;
 	unsigned int selected;
 	unsigned int scroll;
 };
@@ -176,7 +177,7 @@ static void draw_elbow_box(struct personal_terminal *pt)
 	mvwaddch(pt->elbow_box, 1, 2, ACS_HLINE);
 	mvwaddch(pt->elbow_box, 1, 1, ACS_ULCORNER);
 	mvwaddch(pt->elbow_box, 2, 1, ACS_VLINE);
-	for (i = 0; i < N_FOLDER_BOX * W_FOLDER_BOX; i++) {
+	for (i = 0; i < (unsigned int)pt->folder_count * W_FOLDER_BOX; i++) {
 		if (i == pt->selected * H_FOLDER_BOX + 1) {
 			mvwaddch(pt->elbow_box, 3 + i, 1, ACS_LRCORNER);
 			mvwaddch(pt->elbow_box, 3 + i, 0, ACS_HLINE);
@@ -228,7 +229,7 @@ static void draw_folder_box_outline(struct personal_terminal *pt,
  */
 static void select_folder(struct personal_terminal *pt, int i)
 {
-	if (i < 0 || i >= N_FOLDER_BOX)
+	if (i < 0 || i >= pt->folder_count)
 		return;
 
 
@@ -316,7 +317,7 @@ static int init_personal_terminal(struct personal_terminal *pt)
 	                          pt->maxx - X_CONTENT_TEXT,
 	                          Y_CONTENT_TEXT, X_CONTENT_TEXT);
 
-	for (i = 0; i < N_FOLDER_BOX; i++) {
+	for (i = 0; i < (unsigned int)pt->folder_count; i++) {
 		pt->folder_box[i] = newwin(H_FOLDER_BOX, W_FOLDER_BOX,
 		                           Y_FOLDER_BOX + i * H_FOLDER_BOX,
 		                           X_FOLDER_BOX);
@@ -413,6 +414,7 @@ static int pt_load_file(struct pt_params *params, struct personal_terminal *pt,
 int pt_load(struct pt_params *params, struct personal_terminal *pt)
 {
 	int i;
+	pt->folder_count = params->num_entries;
 	for (i = 0; i < params->num_entries; i++) {
 		pt->folder_entries[i].folder = params->entries[i].folder;
 		pt->folder_entries[i].title = params->entries[i].title;
@@ -456,7 +458,7 @@ int personal_terminal(struct pt_params *params)
 
 exit:
 	/* change me when dynamic folder entries are allowed */
-	i = 4;
+	i = pt.folder_count;
 	while (i-- > 0) {
 		free(pt.folder_entries[i].text);
 	}
