@@ -105,7 +105,7 @@ static int wrap_folder_entry(struct personal_terminal *pt,
 			line_length++;
 		}
 		if (line_length > width) {
-			if (line_length == -1) {
+			if (last_space == -1) {
 				set_error(EBIGTEXT);
 				return -1;
 			}
