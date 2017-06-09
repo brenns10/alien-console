@@ -23,9 +23,9 @@ static int get_parent_fd(const char *filename)
 		set_error(EMEM);
 		return -1;
 	}
-	i = strlen(fildup);
 	for (i = strlen(fildup); i >= 0; i--) {
 		if (fildup[i] == '/') {
+			/* trim AFTER slash, allows root :) */
 			fildup[i+1] = '\0';
 			fd = open(fildup, O_RDONLY);
 			free(fildup);
@@ -36,9 +36,14 @@ static int get_parent_fd(const char *filename)
 			return fd;
 		}
 	}
+	/* no slash in filename, so it is in cwd */
 	free(fildup);
-	set_error(EBADFILE);
-	return -1;
+	fd = open(".", O_RDONLY);
+	if (fd < 0) {
+		set_error(ESYS);
+		return -1;
+	}
+	return fd;
 }
 
 static FILE *open_rel(const char *filename, int dirfd)
