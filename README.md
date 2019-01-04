@@ -52,7 +52,7 @@ the magic. I don't want to distribute that because copyright.
 Install
 -------
 
-I have created an [AUR package](https://aur.archlinux.org/alien-console) for
+I have created an [AUR package](https://aur.archlinux.org/packages/alien-console/) for
 Arch Linux. Be sure to install `cool-retro-term` so it will look cool! My
 configuration used in the screenshots can be imported from `nostromo.json`.
 
