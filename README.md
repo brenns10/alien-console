@@ -49,12 +49,20 @@ files inside Alien: Isolation which contained the startup sequence sound
 effects, you could place a `wav` file at `/var/local/console.wav` and listen for
 the magic. I don't want to distribute that because copyright.
 
-Install
--------
+Install & Run
+-------------
 
-I have created an [AUR package](https://aur.archlinux.org/packages/alien-console/) for
-Arch Linux. Be sure to install `cool-retro-term` so it will look cool! My
-configuration used in the screenshots can be imported from `nostromo.json`.
+See [INSTALL.md][INSTALL.md] for install instructions. If you have installed it
+to your system (with `sudo make install`), you can invoke it like this:
+
+    alien-console
+    # searches for /usr/share/alien-console/alien-console.conf
+    # then /etc/alien-console/alien-console.conf
+
+If you have just compiled it, you'll need to specify a config file (as the
+default one will not be installed to your system):
+
+    ./alien-console etc/alien-console.conf
 
 Etc
 ---
